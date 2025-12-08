@@ -351,7 +351,7 @@
 
                         <!-- Info Section -->
                         <div class="mt-8 pt-6 border-t border-slate-700">
-                            <p class="text-xs text-slate-400 mb-4">💡 Collect the boat before crossing water! Place blocks to guide the robot.</p>
+                            <p class="text-xs text-slate-400 mb-4">💡 Only 1 start & 1 finish! Collect boat before water. Music plays sound & turns right!</p>
                             <button id="clearBtn" class="button-primary w-full">Clear Grid</button>
                         </div>
                     </div>
@@ -385,7 +385,7 @@
                     <!-- Instructions -->
                     <div class="mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-4">
                         <p class="text-xs md:text-sm text-slate-400 text-center">
-                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. You must collect a boat (⛵) before crossing water (💧) or the robot will fail! Press RUN to begin.
+                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. Only one START and one FINISH allowed. Collect a boat (⛵) before crossing water (💧). Music blocks (🎵) play a sound and turn the robot right. Press RUN to begin!
                         </p>
                     </div>
                 </div>
@@ -456,6 +456,25 @@
             e.target.style.opacity = '1';
 
             if (!draggedBlockType) return;
+
+            // Check if trying to place a second start or finish block
+            if (draggedBlockType === 'start') {
+                const existingStart = grid.findIndex(block => block === 'start');
+                if (existingStart !== -1 && existingStart !== index) {
+                    showMessage('❌ Only one START allowed!', 'failure');
+                    draggedBlockType = null;
+                    return;
+                }
+            }
+
+            if (draggedBlockType === 'finish') {
+                const existingFinish = grid.findIndex(block => block === 'finish');
+                if (existingFinish !== -1 && existingFinish !== index) {
+                    showMessage('❌ Only one FINISH allowed!', 'failure');
+                    draggedBlockType = null;
+                    return;
+                }
+            }
 
             // Replace existing block if any
             if (grid[index]) {
@@ -580,6 +599,31 @@
             }
         }
 
+        // Play sound for music block
+        function playMusicSound() {
+            // Create an audio context and play a musical note
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Play a happy melody (C-E-G chord)
+            const notes = [261.63, 329.63, 392.00]; // C4, E4, G4
+            notes.forEach((frequency, index) => {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = frequency;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime + index * 0.15);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + index * 0.15 + 0.3);
+                
+                oscillator.start(audioContext.currentTime + index * 0.15);
+                oscillator.stop(audioContext.currentTime + index * 0.15 + 0.3);
+            });
+        }
+
         // Robot Movement Logic
         async function runRobot() {
             if (!startPosition && startPosition !== 0) {
@@ -629,6 +673,13 @@
                         isRunning = false;
                         return;
                     }
+                }
+
+                // Handle music block - play sound and turn right
+                if (currentBlockType === 'music') {
+                    playMusicSound();
+                    await new Promise(r => setTimeout(r, 500)); // Wait for music to play
+                    currentDirection = 0; // Turn right (face right)
                 }
 
                 // Prevent infinite loops

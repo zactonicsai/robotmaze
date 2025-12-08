@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Block Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+        }
+
+        .title-font {
+            font-family: 'Press Start 2P', cursive;
+            letter-spacing: 0.1em;
+        }
+
+        .grid-cell {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(148, 163, 184, 0.2);
+            background: rgba(15, 23, 42, 0.5);
+            position: relative;
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+
+        .grid-cell:hover {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .grid-cell.occupied {
+            cursor: default;
+        }
+
+        .block {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .block:active {
+            cursor: grabbing;
+        }
+
+        .block.start-block {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 20px;
+        }
+
+        .block.finish-block {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            font-size: 20px;
+        }
+
+        .block.arrow-left {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .block.arrow-right {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+        }
+
+        .block.rotate-left {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            color: white;
+        }
+
+        .block.rotate-right {
+            background: linear-gradient(135deg, #ec4899, #be185d);
+            color: white;
+        }
+
+        .block.water {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+        }
+
+        .block.boat {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: white;
+        }
+
+        .block.music {
+            background: linear-gradient(135deg, #f43f5e, #be123c);
+            color: white;
+        }
+
+        .sidebar-block {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: move;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .sidebar-block:hover {
+            transform: translateX(4px);
+            border-color: currentColor;
+        }
+
+        .robot {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5), inset -2px -2px 4px rgba(0,0,0,0.2);
+            z-index: 50;
+            transition: all 0.25s ease-in-out;
+            pointer-events: none;
+        }
+
+        .robot::before {
+            content: '●';
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 10px;
+            position: absolute;
+            left: 8px;
+            top: 8px;
+        }
+
+        .robot.moving {
+            filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.9));
+            animation: pulse 0.25s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 40px 60px;
+            border-radius: 16px;
+            font-size: 32px;
+            font-weight: bold;
+            z-index: 1000;
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .message.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.4);
+        }
+
+        .message.failure {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 20px 60px rgba(239, 68, 68, 0.4);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .button-primary {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .button-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(6, 182, 212, 0.4);
+        }
+
+        .button-primary:active {
+            transform: translateY(0);
+        }
+
+        .button-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .dragging-preview {
+            opacity: 0.7;
+            transform: scale(1.1);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            gap: 0;
+            background: rgba(15, 23, 42, 0.3);
+            padding: 4px;
+            border-radius: 8px;
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .connection-line {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen p-8">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="title-font text-4xl md:text-5xl mb-2" style="color: #fbbf24;">MAZE BUILDER</h1>
+                <p class="text-slate-300 text-sm md:text-base">Drag blocks to build a path from Start to Finish</p>
+            </div>
+
+            <!-- Main Game Container -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Sidebar with Block Palette -->
+                <div class="lg:col-span-1">
+                    <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-6">
+                        <h2 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                            <span>📦</span> BLOCKS
+                        </h2>
+
+                        <div class="space-y-3">
+                            <!-- Start Block -->
+                            <div class="sidebar-block start-block" draggable="true" data-block-type="start">
+                                <span>▶</span>
+                                <span>Start</span>
+                            </div>
+
+                            <!-- Finish Block -->
+                            <div class="sidebar-block finish-block" draggable="true" data-block-type="finish">
+                                <span>🏁</span>
+                                <span>Finish</span>
+                            </div>
+
+                            <!-- Arrow Left -->
+                            <div class="sidebar-block arrow-left" draggable="true" data-block-type="arrow-left">
+                                <span>←</span>
+                                <span>Left</span>
+                            </div>
+
+                            <!-- Arrow Right -->
+                            <div class="sidebar-block arrow-right" draggable="true" data-block-type="arrow-right">
+                                <span>→</span>
+                                <span>Right</span>
+                            </div>
+
+                            <!-- Rotate Left -->
+                            <div class="sidebar-block rotate-left" draggable="true" data-block-type="rotate-left">
+                                <span>↺</span>
+                                <span>Rotate L</span>
+                            </div>
+
+                            <!-- Rotate Right -->
+                            <div class="sidebar-block rotate-right" draggable="true" data-block-type="rotate-right">
+                                <span>↻</span>
+                                <span>Rotate R</span>
+                            </div>
+
+                            <!-- Water -->
+                            <div class="sidebar-block water" draggable="true" data-block-type="water">
+                                <span>💧</span>
+                                <span>Water</span>
+                            </div>
+
+                            <!-- Boat -->
+                            <div class="sidebar-block boat" draggable="true" data-block-type="boat">
+                                <span>⛵</span>
+                                <span>Boat</span>
+                            </div>
+
+                            <!-- Music -->
+                            <div class="sidebar-block music" draggable="true" data-block-type="music">
+                                <span>🎵</span>
+                                <span>Music</span>
+                            </div>
+                        </div>
+
+                        <!-- Info Section -->
+                        <div class="mt-8 pt-6 border-t border-slate-700">
+                            <p class="text-xs text-slate-400 mb-4">💡 Place blocks on the grid and arrange them to guide the robot from Start to Finish!</p>
+                            <button id="clearBtn" class="button-primary w-full">Clear Grid</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Grid and Controls -->
+                <div class="lg:col-span-3">
+                    <!-- Game Grid -->
+                    <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-6 mb-6">
+                        <div class="grid-container" id="gameGrid"></div>
+                        <div id="robotContainer" class="relative" style="height: 0; width: 0;"></div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="flex gap-4 justify-center">
+                        <button id="runBtn" class="button-primary px-8 py-3 text-base" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            ▶ RUN
+                        </button>
+                        <button id="resetBtn" class="button-primary px-8 py-3 text-base" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                            ↻ RESET
+                        </button>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-4">
+                        <p class="text-xs md:text-sm text-slate-400 text-center">
+                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. Arrange them to create a path. The robot starts at the Start block. Press RUN to begin!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 10;
+        const CELL_SIZE = 50;
+        let grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
+        let robotPosition = null;
+        let startPosition = null;
+        let isRunning = false;
+        let draggedBlockType = null;
+
+        // Initialize Grid
+        function initializeGrid() {
+            const gameGrid = document.getElementById('gameGrid');
+            gameGrid.innerHTML = '';
+            grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
+
+            for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+                cell.dataset.index = i;
+                cell.addEventListener('dragover', handleDragOver);
+                cell.addEventListener('drop', (e) => handleDrop(e, i));
+                cell.addEventListener('dragenter', handleDragEnter);
+                cell.addEventListener('dragleave', handleDragLeave);
+                gameGrid.appendChild(cell);
+            }
+        }
+
+        // Sidebar drag handlers
+        document.addEventListener('dragstart', (e) => {
+            if (e.target.classList.contains('sidebar-block')) {
+                draggedBlockType = e.target.dataset.blockType;
+                e.dataTransfer.effectAllowed = 'copy';
+            }
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            if (draggedBlockType) {
+                e.target.style.opacity = '0.7';
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.target.style.opacity = '1';
+        }
+
+        function handleDrop(e, index) {
+            e.preventDefault();
+            e.target.style.opacity = '1';
+
+            if (!draggedBlockType) return;
+
+            // Replace existing block if any
+            if (grid[index]) {
+                grid[index] = null;
+            }
+
+            grid[index] = draggedBlockType;
+
+            // If placing start block, remember its position
+            if (draggedBlockType === 'start') {
+                // Remove old start block if exists
+                grid = grid.map((block, i) => block === 'start' && i !== index ? null : block);
+                startPosition = index;
+                robotPosition = index;
+            }
+
+            draggedBlockType = null;
+            renderGrid();
+        }
+
+        // Render Grid
+        function renderGrid() {
+            const gameGrid = document.getElementById('gameGrid');
+            const cells = gameGrid.querySelectorAll('.grid-cell');
+
+            cells.forEach((cell, index) => {
+                cell.innerHTML = '';
+                const blockType = grid[index];
+
+                if (blockType) {
+                    cell.classList.add('occupied');
+                    const block = document.createElement('div');
+                    block.className = `block ${blockType}-block`;
+                    block.draggable = true;
+                    block.dataset.blockType = blockType;
+
+                    const icons = {
+                        'start': '▶',
+                        'finish': '🏁',
+                        'arrow-left': '←',
+                        'arrow-right': '→',
+                        'rotate-left': '↺',
+                        'rotate-right': '↻',
+                        'water': '💧',
+                        'boat': '⛵',
+                        'music': '🎵'
+                    };
+
+                    block.textContent = icons[blockType] || '';
+
+                    // Allow removal by dragging out
+                    block.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.target.classList.add('dragging-preview');
+                    });
+
+                    block.addEventListener('dragend', (e) => {
+                        e.target.classList.remove('dragging-preview');
+                    });
+
+                    cell.appendChild(block);
+                } else {
+                    cell.classList.remove('occupied');
+                }
+            });
+
+            // Position robot centered in cell
+            if (robotPosition !== null) {
+                const robot = document.getElementById('robot');
+                if (robot) {
+                    const cell = cells[robotPosition];
+                    const gameGridRect = gameGrid.getBoundingClientRect();
+                    const cellRect = cell.getBoundingClientRect();
+                    
+                    // Calculate position relative to the game grid container
+                    const relativeLeft = cellRect.left - gameGridRect.left + (CELL_SIZE / 2) - 20;
+                    const relativeTop = cellRect.top - gameGridRect.top + (CELL_SIZE / 2) - 20;
+                    
+                    robot.style.left = relativeLeft + 'px';
+                    robot.style.top = relativeTop + 'px';
+                    robot.classList.add('moving');
+                    
+                    // Remove the moving class after animation
+                    setTimeout(() => {
+                        if (robot) robot.classList.remove('moving');
+                    }, 250);
+                }
+            }
+        }
+
+        // Robot Movement Logic
+        async function runRobot() {
+            if (!startPosition) {
+                showMessage('Place a START block first!', 'failure');
+                return;
+            }
+
+            if (isRunning) return;
+            isRunning = true;
+
+            document.getElementById('runBtn').disabled = true;
+            robotPosition = startPosition;
+            let currentDirection = 0; // 0=right, 1=down, 2=left, 3=up
+            let visitedPositions = new Set();
+            let maxSteps = 200;
+            let steps = 0;
+
+            while (steps < maxSteps) {
+                steps++;
+                renderGrid();
+                await new Promise(r => setTimeout(r, 400));
+
+                const blockType = grid[robotPosition];
+
+                // Check if reached finish
+                if (blockType === 'finish') {
+                    showMessage('🎉 SUCCESS!', 'success');
+                    document.getElementById('runBtn').disabled = false;
+                    isRunning = false;
+                    return;
+                }
+
+                // Prevent infinite loops
+                const posKey = robotPosition + '-' + currentDirection;
+                if (visitedPositions.has(posKey)) {
+                    showMessage('❌ Try Again!', 'failure');
+                    document.getElementById('runBtn').disabled = false;
+                    isRunning = false;
+                    return;
+                }
+                visitedPositions.add(posKey);
+
+                // Process block type
+                if (blockType === 'rotate-left') {
+                    currentDirection = (currentDirection - 1 + 4) % 4;
+                } else if (blockType === 'rotate-right') {
+                    currentDirection = (currentDirection + 1) % 4;
+                } else if (blockType === 'arrow-left') {
+                    currentDirection = 2; // Face left
+                } else if (blockType === 'arrow-right') {
+                    currentDirection = 0; // Face right
+                }
+
+                // Move forward
+                const [row, col] = [Math.floor(robotPosition / GRID_SIZE), robotPosition % GRID_SIZE];
+                let newRow = row;
+                let newCol = col;
+
+                if (currentDirection === 0) newCol++; // right
+                else if (currentDirection === 1) newRow++; // down
+                else if (currentDirection === 2) newCol--; // left
+                else if (currentDirection === 3) newRow--; // up
+
+                // Check boundaries
+                if (newRow < 0 || newRow >= GRID_SIZE || newCol < 0 || newCol >= GRID_SIZE) {
+                    showMessage('❌ Try Again!', 'failure');
+                    document.getElementById('runBtn').disabled = false;
+                    isRunning = false;
+                    return;
+                }
+
+                robotPosition = newRow * GRID_SIZE + newCol;
+            }
+
+            showMessage('❌ Try Again!', 'failure');
+            document.getElementById('runBtn').disabled = false;
+            isRunning = false;
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const existing = document.querySelector('.message');
+            if (existing) existing.remove();
+
+            const message = document.createElement('div');
+            message.className = `message ${type}`;
+            message.textContent = text;
+            document.body.appendChild(message);
+
+            setTimeout(() => {
+                message.style.animation = 'popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) reverse';
+                setTimeout(() => message.remove(), 400);
+            }, 2000);
+        }
+
+        // Event Listeners
+        document.getElementById('runBtn').addEventListener('click', runRobot);
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            robotPosition = startPosition;
+            renderGrid();
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
+            startPosition = null;
+            robotPosition = null;
+            renderGrid();
+        });
+
+        // Create robot element
+        const robotContainer = document.getElementById('robotContainer');
+        const robot = document.createElement('div');
+        robot.id = 'robot';
+        robot.className = 'robot';
+        robot.textContent = '🤖';
+        robotContainer.appendChild(robot);
+
+        // Initialize
+        initializeGrid();
+        renderGrid();
+    </script>
+</body>
+</html>

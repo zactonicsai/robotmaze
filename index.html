@@ -154,6 +154,22 @@
             animation: pulse 0.25s ease-in-out;
         }
 
+        .robot.has-boat::after {
+            content: '⛵';
+            position: absolute;
+            font-size: 12px;
+            top: -8px;
+            right: -8px;
+            background: rgba(139, 92, 246, 0.9);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+        }
+
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.15); }
@@ -238,12 +254,24 @@
             border-radius: 8px;
             border: 2px solid rgba(148, 163, 184, 0.3);
             backdrop-filter: blur(10px);
+            position: relative;
         }
 
-        .connection-line {
-            position: absolute;
-            pointer-events: none;
-            z-index: 1;
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-indicator.active {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.2);
         }
     </style>
 </head>
@@ -323,7 +351,7 @@
 
                         <!-- Info Section -->
                         <div class="mt-8 pt-6 border-t border-slate-700">
-                            <p class="text-xs text-slate-400 mb-4">💡 Place blocks on the grid and arrange them to guide the robot from Start to Finish!</p>
+                            <p class="text-xs text-slate-400 mb-4">💡 Collect the boat before crossing water! Place blocks to guide the robot.</p>
                             <button id="clearBtn" class="button-primary w-full">Clear Grid</button>
                         </div>
                     </div>
@@ -331,10 +359,17 @@
 
                 <!-- Game Grid and Controls -->
                 <div class="lg:col-span-3">
+                    <!-- Status Bar -->
+                    <div class="flex gap-4 mb-4 justify-center">
+                        <div id="boatStatus" class="status-indicator">
+                            <span>⛵</span>
+                            <span>Boat: Not Collected</span>
+                        </div>
+                    </div>
+
                     <!-- Game Grid -->
                     <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-6 mb-6">
                         <div class="grid-container" id="gameGrid"></div>
-                        <div id="robotContainer" class="relative" style="height: 0; width: 0;"></div>
                     </div>
 
                     <!-- Controls -->
@@ -350,7 +385,7 @@
                     <!-- Instructions -->
                     <div class="mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-4">
                         <p class="text-xs md:text-sm text-slate-400 text-center">
-                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. Arrange them to create a path. The robot starts at the Start block. Press RUN to begin!
+                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. You must collect a boat (⛵) before crossing water (💧) or the robot will fail! Press RUN to begin.
                         </p>
                     </div>
                 </div>
@@ -366,6 +401,7 @@
         let startPosition = null;
         let isRunning = false;
         let draggedBlockType = null;
+        let hasBoat = false;
 
         // Initialize Grid
         function initializeGrid() {
@@ -383,6 +419,12 @@
                 cell.addEventListener('dragleave', handleDragLeave);
                 gameGrid.appendChild(cell);
             }
+
+            // Place start block at position 0 by default
+            grid[0] = 'start';
+            startPosition = 0;
+            robotPosition = 0;
+            renderGrid();
         }
 
         // Sidebar drag handlers
@@ -480,39 +522,75 @@
                 }
             });
 
-            // Position robot centered in cell
-            if (robotPosition !== null) {
-                const robot = document.getElementById('robot');
-                if (robot) {
-                    const cell = cells[robotPosition];
-                    const gameGridRect = gameGrid.getBoundingClientRect();
-                    const cellRect = cell.getBoundingClientRect();
-                    
-                    // Calculate position relative to the game grid container
-                    const relativeLeft = cellRect.left - gameGridRect.left + (CELL_SIZE / 2) - 20;
-                    const relativeTop = cellRect.top - gameGridRect.top + (CELL_SIZE / 2) - 20;
-                    
-                    robot.style.left = relativeLeft + 'px';
-                    robot.style.top = relativeTop + 'px';
-                    robot.classList.add('moving');
-                    
-                    // Remove the moving class after animation
-                    setTimeout(() => {
-                        if (robot) robot.classList.remove('moving');
-                    }, 250);
-                }
+            // Position robot on the grid
+            positionRobot();
+        }
+
+        function positionRobot() {
+            if (robotPosition === null) return;
+
+            const gameGrid = document.getElementById('gameGrid');
+            const cells = gameGrid.querySelectorAll('.grid-cell');
+            
+            // Remove existing robot
+            const existingRobot = document.getElementById('robot');
+            if (existingRobot) {
+                existingRobot.remove();
+            }
+
+            // Create robot
+            const robot = document.createElement('div');
+            robot.id = 'robot';
+            robot.className = 'robot';
+            if (hasBoat) {
+                robot.classList.add('has-boat');
+            }
+            robot.textContent = '🤖';
+
+            const cell = cells[robotPosition];
+            const gameGridRect = gameGrid.getBoundingClientRect();
+            const cellRect = cell.getBoundingClientRect();
+            
+            // Calculate position relative to the game grid container
+            const relativeLeft = cellRect.left - gameGridRect.left + (CELL_SIZE / 2) - 20;
+            const relativeTop = cellRect.top - gameGridRect.top + (CELL_SIZE / 2) - 20;
+            
+            robot.style.left = relativeLeft + 'px';
+            robot.style.top = relativeTop + 'px';
+            
+            gameGrid.appendChild(robot);
+            
+            // Add moving animation
+            setTimeout(() => {
+                robot.classList.add('moving');
+                setTimeout(() => {
+                    robot.classList.remove('moving');
+                }, 250);
+            }, 10);
+        }
+
+        function updateBoatStatus() {
+            const boatStatus = document.getElementById('boatStatus');
+            if (hasBoat) {
+                boatStatus.innerHTML = '<span>⛵</span><span>Boat: Collected ✓</span>';
+                boatStatus.classList.add('active');
+            } else {
+                boatStatus.innerHTML = '<span>⛵</span><span>Boat: Not Collected</span>';
+                boatStatus.classList.remove('active');
             }
         }
 
         // Robot Movement Logic
         async function runRobot() {
-            if (!startPosition) {
+            if (!startPosition && startPosition !== 0) {
                 showMessage('Place a START block first!', 'failure');
                 return;
             }
 
             if (isRunning) return;
             isRunning = true;
+            hasBoat = false;
+            updateBoatStatus();
 
             document.getElementById('runBtn').disabled = true;
             robotPosition = startPosition;
@@ -521,19 +599,36 @@
             let maxSteps = 200;
             let steps = 0;
 
+            renderGrid();
+
             while (steps < maxSteps) {
                 steps++;
-                renderGrid();
                 await new Promise(r => setTimeout(r, 400));
 
-                const blockType = grid[robotPosition];
+                const currentBlockType = grid[robotPosition];
 
                 // Check if reached finish
-                if (blockType === 'finish') {
+                if (currentBlockType === 'finish') {
                     showMessage('🎉 SUCCESS!', 'success');
                     document.getElementById('runBtn').disabled = false;
                     isRunning = false;
                     return;
+                }
+
+                // Collect boat
+                if (currentBlockType === 'boat') {
+                    hasBoat = true;
+                    updateBoatStatus();
+                }
+
+                // Check water crossing
+                if (currentBlockType === 'water') {
+                    if (!hasBoat) {
+                        showMessage('❌ Need Boat to Cross Water!', 'failure');
+                        document.getElementById('runBtn').disabled = false;
+                        isRunning = false;
+                        return;
+                    }
                 }
 
                 // Prevent infinite loops
@@ -547,13 +642,13 @@
                 visitedPositions.add(posKey);
 
                 // Process block type
-                if (blockType === 'rotate-left') {
+                if (currentBlockType === 'rotate-left') {
                     currentDirection = (currentDirection - 1 + 4) % 4;
-                } else if (blockType === 'rotate-right') {
+                } else if (currentBlockType === 'rotate-right') {
                     currentDirection = (currentDirection + 1) % 4;
-                } else if (blockType === 'arrow-left') {
+                } else if (currentBlockType === 'arrow-left') {
                     currentDirection = 2; // Face left
-                } else if (blockType === 'arrow-right') {
+                } else if (currentBlockType === 'arrow-right') {
                     currentDirection = 0; // Face right
                 }
 
@@ -575,7 +670,18 @@
                     return;
                 }
 
-                robotPosition = newRow * GRID_SIZE + newCol;
+                const newPosition = newRow * GRID_SIZE + newCol;
+
+                // Check if next position has a block
+                if (!grid[newPosition]) {
+                    showMessage('❌ Try Again!', 'failure');
+                    document.getElementById('runBtn').disabled = false;
+                    isRunning = false;
+                    return;
+                }
+
+                robotPosition = newPosition;
+                renderGrid();
             }
 
             showMessage('❌ Try Again!', 'failure');
@@ -603,26 +709,24 @@
         document.getElementById('runBtn').addEventListener('click', runRobot);
         document.getElementById('resetBtn').addEventListener('click', () => {
             robotPosition = startPosition;
+            hasBoat = false;
+            updateBoatStatus();
             renderGrid();
         });
         document.getElementById('clearBtn').addEventListener('click', () => {
             grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
-            startPosition = null;
-            robotPosition = null;
+            // Keep start block at position 0
+            grid[0] = 'start';
+            startPosition = 0;
+            robotPosition = 0;
+            hasBoat = false;
+            updateBoatStatus();
             renderGrid();
         });
 
-        // Create robot element
-        const robotContainer = document.getElementById('robotContainer');
-        const robot = document.createElement('div');
-        robot.id = 'robot';
-        robot.className = 'robot';
-        robot.textContent = '🤖';
-        robotContainer.appendChild(robot);
-
         // Initialize
         initializeGrid();
-        renderGrid();
+        updateBoatStatus();
     </script>
 </body>
 </html>

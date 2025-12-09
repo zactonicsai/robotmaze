@@ -29,6 +29,9 @@
             position: relative;
             cursor: grab;
             transition: all 0.2s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .grid-cell:hover {
@@ -36,8 +39,18 @@
             border-color: rgba(148, 163, 184, 0.4);
         }
 
+        .grid-cell:active {
+            background: rgba(148, 163, 184, 0.3);
+        }
+
         .grid-cell.occupied {
             cursor: default;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-cell {
+                cursor: pointer;
+            }
         }
 
         .block {
@@ -57,6 +70,17 @@
 
         .block:active {
             cursor: grabbing;
+        }
+
+        @media (max-width: 1024px) {
+            .block {
+                cursor: pointer;
+            }
+            
+            .block:active {
+                transform: scale(0.9);
+                opacity: 0.7;
+            }
         }
 
         .block.start-block {
@@ -176,6 +200,12 @@
             50% { transform: scale(1.15); }
         }
 
+        @keyframes selectPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1.05); }
+        }
+
         .message {
             position: fixed;
             top: 50%;
@@ -282,6 +312,13 @@
             display: none;
         }
 
+        .mobile-block-item.selected {
+            border: 3px solid #fbbf24;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+            animation: selectPulse 0.3s ease-out;
+        }
+
         @media (max-width: 1024px) {
             .grid-container {
                 grid-template-columns: repeat(10, 40px);
@@ -324,11 +361,26 @@
                 justify-content: center;
                 border-radius: 8px;
                 font-size: 24px;
-                cursor: move;
+                cursor: pointer;
                 user-select: none;
                 transition: all 0.2s ease;
                 border: 2px solid transparent;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                position: relative;
+            }
+
+            .mobile-block-item::after {
+                content: '';
+                position: absolute;
+                inset: -2px;
+                border-radius: 8px;
+                border: 2px solid transparent;
+                transition: all 0.2s ease;
+            }
+
+            .mobile-block-item.selected::after {
+                border-color: #fbbf24;
+                box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
             }
 
             .mobile-block-item:active {
@@ -526,7 +578,7 @@
 
                         <!-- Info Section -->
                         <div class="mt-8 pt-6 border-t border-slate-700">
-                            <p class="text-xs text-slate-400 mb-4">💡 Only 1 start & 1 finish! Collect boat before water. Music plays sound & turns right!</p>
+                            <p class="text-xs text-slate-400 mb-4">💡 1 start & 1 finish only! Get boat before water. Music = sound + turn right!</p>
                             <button id="clearBtn" class="button-primary w-full">Clear Grid</button>
                         </div>
                     </div>
@@ -535,16 +587,17 @@
                 <!-- Game Grid and Controls -->
                 <div class="lg:col-span-3">
                     <!-- Mobile Block Bar -->
+                    <p class="text-xs text-cyan-400 text-center mb-2 lg:hidden font-semibold animate-pulse">👆 Tap a block to select, then tap the grid to place</p>
                     <div class="mobile-block-bar">
-                        <div class="mobile-block-item start-block" draggable="true" data-block-type="start">▶</div>
-                        <div class="mobile-block-item finish-block" draggable="true" data-block-type="finish">🏁</div>
-                        <div class="mobile-block-item arrow-left" draggable="true" data-block-type="arrow-left">←</div>
-                        <div class="mobile-block-item arrow-right" draggable="true" data-block-type="arrow-right">→</div>
-                        <div class="mobile-block-item rotate-left" draggable="true" data-block-type="rotate-left">↺</div>
-                        <div class="mobile-block-item rotate-right" draggable="true" data-block-type="rotate-right">↻</div>
-                        <div class="mobile-block-item water" draggable="true" data-block-type="water">💧</div>
-                        <div class="mobile-block-item boat" draggable="true" data-block-type="boat">⛵</div>
-                        <div class="mobile-block-item music" draggable="true" data-block-type="music">🎵</div>
+                        <div class="mobile-block-item start-block" data-block-type="start">▶</div>
+                        <div class="mobile-block-item finish-block" data-block-type="finish">🏁</div>
+                        <div class="mobile-block-item arrow-left" data-block-type="arrow-left">←</div>
+                        <div class="mobile-block-item arrow-right" data-block-type="arrow-right">→</div>
+                        <div class="mobile-block-item rotate-left" data-block-type="rotate-left">↺</div>
+                        <div class="mobile-block-item rotate-right" data-block-type="rotate-right">↻</div>
+                        <div class="mobile-block-item water" data-block-type="water">💧</div>
+                        <div class="mobile-block-item boat" data-block-type="boat">⛵</div>
+                        <div class="mobile-block-item music" data-block-type="music">🎵</div>
                     </div>
                     <!-- Status Bar -->
                     <div class="flex gap-2 md:gap-4 mb-3 md:mb-4 justify-center">
@@ -575,7 +628,7 @@
                     <!-- Instructions -->
                     <div class="mt-4 md:mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-3 md:p-4">
                         <p class="text-xs md:text-sm text-slate-400 text-center">
-                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from <span class="hidden lg:inline">the sidebar</span><span class="lg:hidden">above</span> to the grid. Only one START and one FINISH allowed. Collect a boat (⛵) before crossing water (💧). Music blocks (🎵) play a sound and turn the robot right. Press RUN to begin!
+                            <strong class="text-cyan-400">How to Play:</strong> <span class="lg:hidden">Tap a block above to select (highlighted), then tap the grid to place. Tap placed blocks to remove them.</span><span class="hidden lg:inline">Drag blocks from the sidebar to the grid.</span> Only one START and one FINISH allowed. Collect a boat (⛵) before crossing water (💧). Music blocks (🎵) play sound & turn right. Press RUN!
                         </p>
                     </div>
                 </div>
@@ -592,6 +645,7 @@
         let isRunning = false;
         let draggedBlockType = null;
         let hasBoat = false;
+        let selectedMobileBlock = null;
 
         // Initialize Grid
         function initializeGrid() {
@@ -607,6 +661,14 @@
                 cell.addEventListener('drop', (e) => handleDrop(e, i));
                 cell.addEventListener('dragenter', handleDragEnter);
                 cell.addEventListener('dragleave', handleDragLeave);
+                
+                // Add touch support for mobile
+                cell.addEventListener('click', (e) => handleCellClick(e, i));
+                cell.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    handleCellClick(e, i);
+                }, { passive: false });
+                
                 gameGrid.appendChild(cell);
             }
 
@@ -615,6 +677,108 @@
             startPosition = 0;
             robotPosition = 0;
             renderGrid();
+        }
+
+        // Mobile block selection
+        function handleMobileBlockClick(e, blockType) {
+            e.preventDefault();
+            
+            // Haptic feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+            
+            // Remove previous selection
+            document.querySelectorAll('.mobile-block-item').forEach(block => {
+                block.classList.remove('selected');
+            });
+            
+            // Select this block
+            selectedMobileBlock = blockType;
+            e.currentTarget.classList.add('selected');
+        }
+
+        // Handle cell click for mobile placement
+        function handleCellClick(e, index) {
+            // If no block is selected and there's a block at this position, remove it
+            if (!selectedMobileBlock && grid[index]) {
+                // Haptic feedback
+                if (navigator.vibrate) {
+                    navigator.vibrate(20);
+                }
+                grid[index] = null;
+                renderGrid();
+                return;
+            }
+            
+            if (!selectedMobileBlock) return;
+            
+            // Haptic feedback for placement
+            if (navigator.vibrate) {
+                navigator.vibrate(15);
+            }
+            
+            // Use the selected mobile block type
+            const blockType = selectedMobileBlock;
+            
+            // Check if trying to place a second start or finish block
+            if (blockType === 'start') {
+                const existingStart = grid.findIndex(block => block === 'start');
+                if (existingStart !== -1 && existingStart !== index) {
+                    showMessage('❌ Only one START allowed!', 'failure');
+                    return;
+                }
+            }
+
+            if (blockType === 'finish') {
+                const existingFinish = grid.findIndex(block => block === 'finish');
+                if (existingFinish !== -1 && existingFinish !== index) {
+                    showMessage('❌ Only one FINISH allowed!', 'failure');
+                    return;
+                }
+            }
+
+            // Replace existing block if any
+            if (grid[index]) {
+                grid[index] = null;
+            }
+
+            grid[index] = blockType;
+
+            // If placing start block, remember its position
+            if (blockType === 'start') {
+                // Remove old start block if exists
+                grid = grid.map((block, i) => block === 'start' && i !== index ? null : block);
+                startPosition = index;
+                robotPosition = index;
+            }
+
+            // Clear selection
+            selectedMobileBlock = null;
+            document.querySelectorAll('.mobile-block-item').forEach(block => {
+                block.classList.remove('selected');
+            });
+            
+            renderGrid();
+        }
+
+        // Setup mobile block listeners
+        function setupMobileBlocks() {
+            const mobileBlocks = document.querySelectorAll('.mobile-block-item');
+            mobileBlocks.forEach(block => {
+                block.addEventListener('click', (e) => {
+                    handleMobileBlockClick(e, block.dataset.blockType);
+                });
+                
+                // Prevent default drag behavior on mobile
+                block.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+                
+                block.addEventListener('dragstart', (e) => {
+                    e.preventDefault();
+                });
+            });
         }
 
         // Sidebar and mobile block drag handlers
@@ -987,6 +1151,7 @@
 
         // Initialize
         initializeGrid();
+        setupMobileBlocks();
         updateBoatStatus();
     </script>
 </body>

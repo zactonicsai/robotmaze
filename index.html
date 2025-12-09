@@ -13,6 +13,7 @@
             background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0f172a 100%);
             min-height: 100vh;
             color: #e2e8f0;
+            overflow-x: hidden;
         }
 
         .title-font {
@@ -255,6 +256,8 @@
             border: 2px solid rgba(148, 163, 184, 0.3);
             backdrop-filter: blur(10px);
             position: relative;
+            margin: 0 auto;
+            width: fit-content;
         }
 
         .status-indicator {
@@ -273,21 +276,193 @@
             border-color: #8b5cf6;
             background: rgba(139, 92, 246, 0.2);
         }
+
+        /* Mobile Block Bar */
+        .mobile-block-bar {
+            display: none;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-container {
+                grid-template-columns: repeat(10, 40px);
+            }
+
+            .grid-cell {
+                width: 40px;
+                height: 40px;
+            }
+
+            .robot {
+                width: 32px;
+                height: 32px;
+                font-size: 16px;
+            }
+
+            .block {
+                font-size: 20px;
+            }
+
+            .mobile-block-bar {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                padding: 12px;
+                background: rgba(15, 23, 42, 0.8);
+                border: 2px solid rgba(148, 163, 184, 0.3);
+                border-radius: 8px;
+                justify-content: center;
+                margin-bottom: 16px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .mobile-block-item {
+                width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                font-size: 24px;
+                cursor: move;
+                user-select: none;
+                transition: all 0.2s ease;
+                border: 2px solid transparent;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            }
+
+            .mobile-block-item:active {
+                transform: scale(0.95);
+            }
+
+            .mobile-block-item:hover {
+                transform: scale(1.05);
+            }
+
+            .desktop-sidebar {
+                display: none;
+            }
+
+            .title-font {
+                font-size: 1.5rem;
+            }
+
+            .message {
+                font-size: 24px;
+                padding: 30px 40px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .min-h-screen {
+                padding: 1rem;
+            }
+
+            .grid-container {
+                grid-template-columns: repeat(10, 32px);
+                padding: 2px;
+            }
+
+            .grid-cell {
+                width: 32px;
+                height: 32px;
+                border-width: 1px;
+            }
+
+            .robot {
+                width: 26px;
+                height: 26px;
+                font-size: 14px;
+            }
+
+            .robot.has-boat::after {
+                font-size: 10px;
+                width: 16px;
+                height: 16px;
+                top: -6px;
+                right: -6px;
+            }
+
+            .block {
+                font-size: 16px;
+            }
+
+            .mobile-block-item {
+                width: 38px;
+                height: 38px;
+                font-size: 20px;
+            }
+
+            .title-font {
+                font-size: 1.25rem;
+            }
+
+            .button-primary {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+
+            .status-indicator {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            .message {
+                font-size: 20px;
+                padding: 24px 32px;
+            }
+
+            .bg-slate-900\/50 {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .grid-container {
+                grid-template-columns: repeat(10, 28px);
+            }
+
+            .grid-cell {
+                width: 28px;
+                height: 28px;
+            }
+
+            .robot {
+                width: 22px;
+                height: 22px;
+                font-size: 12px;
+            }
+
+            .block {
+                font-size: 14px;
+            }
+
+            .mobile-block-item {
+                width: 34px;
+                height: 34px;
+                font-size: 18px;
+            }
+
+            .message {
+                font-size: 18px;
+                padding: 20px 28px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="min-h-screen p-8">
+    <div class="min-h-screen p-4 md:p-8">
         <div class="max-w-7xl mx-auto">
             <!-- Header -->
-            <div class="text-center mb-8">
+            <div class="text-center mb-4 md:mb-8">
                 <h1 class="title-font text-4xl md:text-5xl mb-2" style="color: #fbbf24;">MAZE BUILDER</h1>
-                <p class="text-slate-300 text-sm md:text-base">Drag blocks to build a path from Start to Finish</p>
+                <p class="text-slate-300 text-xs md:text-base">Drag blocks to build a path from Start to Finish</p>
             </div>
 
             <!-- Main Game Container -->
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6">
                 <!-- Sidebar with Block Palette -->
-                <div class="lg:col-span-1">
+                <div class="lg:col-span-1 desktop-sidebar">
                     <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-6">
                         <h2 class="text-lg font-bold text-cyan-400 mb-4 flex items-center gap-2">
                             <span>📦</span> BLOCKS
@@ -359,8 +534,20 @@
 
                 <!-- Game Grid and Controls -->
                 <div class="lg:col-span-3">
+                    <!-- Mobile Block Bar -->
+                    <div class="mobile-block-bar">
+                        <div class="mobile-block-item start-block" draggable="true" data-block-type="start">▶</div>
+                        <div class="mobile-block-item finish-block" draggable="true" data-block-type="finish">🏁</div>
+                        <div class="mobile-block-item arrow-left" draggable="true" data-block-type="arrow-left">←</div>
+                        <div class="mobile-block-item arrow-right" draggable="true" data-block-type="arrow-right">→</div>
+                        <div class="mobile-block-item rotate-left" draggable="true" data-block-type="rotate-left">↺</div>
+                        <div class="mobile-block-item rotate-right" draggable="true" data-block-type="rotate-right">↻</div>
+                        <div class="mobile-block-item water" draggable="true" data-block-type="water">💧</div>
+                        <div class="mobile-block-item boat" draggable="true" data-block-type="boat">⛵</div>
+                        <div class="mobile-block-item music" draggable="true" data-block-type="music">🎵</div>
+                    </div>
                     <!-- Status Bar -->
-                    <div class="flex gap-4 mb-4 justify-center">
+                    <div class="flex gap-2 md:gap-4 mb-3 md:mb-4 justify-center">
                         <div id="boatStatus" class="status-indicator">
                             <span>⛵</span>
                             <span>Boat: Not Collected</span>
@@ -368,24 +555,27 @@
                     </div>
 
                     <!-- Game Grid -->
-                    <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-6 mb-6">
+                    <div class="bg-slate-900/50 backdrop-blur-sm border border-slate-700 rounded-12 p-3 md:p-6 mb-4 md:mb-6">
                         <div class="grid-container" id="gameGrid"></div>
                     </div>
 
                     <!-- Controls -->
-                    <div class="flex gap-4 justify-center">
-                        <button id="runBtn" class="button-primary px-8 py-3 text-base" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <div class="flex gap-2 md:gap-4 justify-center flex-wrap">
+                        <button id="runBtn" class="button-primary px-6 md:px-8 py-2 md:py-3 text-sm md:text-base" style="background: linear-gradient(135deg, #10b981, #059669);">
                             ▶ RUN
                         </button>
-                        <button id="resetBtn" class="button-primary px-8 py-3 text-base" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <button id="resetBtn" class="button-primary px-6 md:px-8 py-2 md:py-3 text-sm md:text-base" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
                             ↻ RESET
+                        </button>
+                        <button id="clearBtnMobile" class="button-primary px-6 md:px-8 py-2 md:py-3 text-sm md:text-base lg:hidden" style="background: linear-gradient(135deg, #64748b, #475569);">
+                            🗑️ CLEAR
                         </button>
                     </div>
 
                     <!-- Instructions -->
-                    <div class="mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-4">
+                    <div class="mt-4 md:mt-6 bg-slate-800/50 border border-slate-700 rounded-8 p-3 md:p-4">
                         <p class="text-xs md:text-sm text-slate-400 text-center">
-                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from the sidebar to the grid. Only one START and one FINISH allowed. Collect a boat (⛵) before crossing water (💧). Music blocks (🎵) play a sound and turn the robot right. Press RUN to begin!
+                            <strong class="text-cyan-400">How to Play:</strong> Drag blocks from <span class="hidden lg:inline">the sidebar</span><span class="lg:hidden">above</span> to the grid. Only one START and one FINISH allowed. Collect a boat (⛵) before crossing water (💧). Music blocks (🎵) play a sound and turn the robot right. Press RUN to begin!
                         </p>
                     </div>
                 </div>
@@ -427,9 +617,9 @@
             renderGrid();
         }
 
-        // Sidebar drag handlers
+        // Sidebar and mobile block drag handlers
         document.addEventListener('dragstart', (e) => {
-            if (e.target.classList.contains('sidebar-block')) {
+            if (e.target.classList.contains('sidebar-block') || e.target.classList.contains('mobile-block-item')) {
                 draggedBlockType = e.target.dataset.blockType;
                 e.dataTransfer.effectAllowed = 'copy';
             }
@@ -570,9 +760,13 @@
             const gameGridRect = gameGrid.getBoundingClientRect();
             const cellRect = cell.getBoundingClientRect();
             
+            // Get actual cell size from the cell element
+            const actualCellSize = cellRect.width;
+            const robotSize = window.innerWidth <= 380 ? 22 : window.innerWidth <= 640 ? 26 : window.innerWidth <= 1024 ? 32 : 40;
+            
             // Calculate position relative to the game grid container
-            const relativeLeft = cellRect.left - gameGridRect.left + (CELL_SIZE / 2) - 20;
-            const relativeTop = cellRect.top - gameGridRect.top + (CELL_SIZE / 2) - 20;
+            const relativeLeft = cellRect.left - gameGridRect.left + (actualCellSize / 2) - (robotSize / 2);
+            const relativeTop = cellRect.top - gameGridRect.top + (actualCellSize / 2) - (robotSize / 2);
             
             robot.style.left = relativeLeft + 'px';
             robot.style.top = relativeTop + 'px';
@@ -590,11 +784,17 @@
 
         function updateBoatStatus() {
             const boatStatus = document.getElementById('boatStatus');
+            const isMobile = window.innerWidth <= 640;
+            
             if (hasBoat) {
-                boatStatus.innerHTML = '<span>⛵</span><span>Boat: Collected ✓</span>';
+                boatStatus.innerHTML = isMobile 
+                    ? '<span>⛵</span><span>Collected ✓</span>'
+                    : '<span>⛵</span><span>Boat: Collected ✓</span>';
                 boatStatus.classList.add('active');
             } else {
-                boatStatus.innerHTML = '<span>⛵</span><span>Boat: Not Collected</span>';
+                boatStatus.innerHTML = isMobile
+                    ? '<span>⛵</span><span>Not Collected</span>'
+                    : '<span>⛵</span><span>Boat: Not Collected</span>';
                 boatStatus.classList.remove('active');
             }
         }
@@ -765,6 +965,16 @@
             renderGrid();
         });
         document.getElementById('clearBtn').addEventListener('click', () => {
+            grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
+            // Keep start block at position 0
+            grid[0] = 'start';
+            startPosition = 0;
+            robotPosition = 0;
+            hasBoat = false;
+            updateBoatStatus();
+            renderGrid();
+        });
+        document.getElementById('clearBtnMobile').addEventListener('click', () => {
             grid = Array(GRID_SIZE * GRID_SIZE).fill(null);
             // Keep start block at position 0
             grid[0] = 'start';
